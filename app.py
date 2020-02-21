@@ -9,7 +9,7 @@ from flask_cors import CORS,cross_origin
 class Blockchain:
     def __init__(self):
         self.chain=[]
-        self.create_block(proof=1 , previous_hash='0')
+        self.create_block(proof=100 , previous_hash='0')
 
     def create_block(self,proof,previous_hash):
         block={
@@ -41,20 +41,21 @@ class Blockchain:
         return hashlib.sha256(encoded_block).hexdigest()
 
     def chain_validity(self,chain):
-        previous_block=chain[0]
+        previous_block = chain[0]
         block_index = 1
-        while block_index<len(chain):
+        while block_index < len(chain):
             block=chain[block_index]
             if block['previous_hash'] != self.hash(previous_block):
-                return False
+                return [False,'error1']
             previous_proof = previous_block['proof']
             proof=block['proof']
             hash_op=hashlib.sha256(str(proof**2 - previous_proof**2).encode()).hexdigest()
-            if hash_op[:4] == '0000':
-                return False
+            if hash_op[0:4] != '0000':
+                print(hash_op)
+                return [False ,'error2']
             previous_block=block
             block_index += 1
-        return True
+        return [True]
 
 
 app = Flask(__name__)
@@ -77,7 +78,7 @@ def mine_block():
         'proof': block['proof'],
         'previous_hash': block['previous_hash']
     }
-    return jsonify(chain1),200
+    return jsonify(chain1), 200
 
 
 @app.route('/get_chain',methods = ['GET'])
@@ -90,11 +91,19 @@ def get_chain():
 
 @app.route('/is_it_valid',methods=['GET'])
 def is_valid():
-    answer=blockchain.chain_validity(blockchain.chain)
-    if answer:
-        response={'message': 'All good Captain! The chain remains toit'}
+    x=blockchain.chain_validity(blockchain.chain)
+    if(len(x)==1):
+        answer=x[0]
     else:
-        response={'message': 'Houston, there is slight problem! You have been defrauded. Ok bye! '}
+        answer=x[0]
+        err=x[1]
+
+    if answer:
+        response={'message': 'All good Captain! The chain remains toit'
+                  }
+    else:
+        response={'message': 'Houston, there is slight problem! You have been defrauded. Ok bye! ',
+                  'err': err}
 
     return jsonify(response),200
 
