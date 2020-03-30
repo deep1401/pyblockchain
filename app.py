@@ -1,4 +1,4 @@
-from flask import Flask,jsonify
+from flask import Flask,jsonify,request
 import datetime
 import hashlib
 import json
@@ -9,14 +9,16 @@ from flask_cors import CORS,cross_origin
 class Blockchain:
     def __init__(self):
         self.chain=[]
-        self.create_block(proof=100 , previous_hash='0')
+        self.create_block(proof=100, previous_hash='0',hct=0,hgb=0,irf=0,mch=0,mchc=0,mcv=0,rbc=0,rdw=0,retc=0,retp=0)
 
-    def create_block(self,proof,previous_hash):
+    def create_block(self,proof,previous_hash,hct,hgb,irf,mch,mchc,mcv,rbc,rdw,retc,retp):
         block={
             'index':len(self.chain)+1,
             'timestamp': str(datetime.datetime.now(pytz.timezone('Asia/Calcutta'))),
+            'blood': {'HCT':hct,'HGB':hgb,'IRF':irf,'MCH':mch,'MCHC': mchc,'MCV':mcv,'RBC':rbc,'RDW.SD':rdw,'RETC':retc,'RETP':retp},
             'proof': proof,
             'previous_hash': previous_hash,
+
             }
         self.chain.append(block)
 
@@ -51,8 +53,8 @@ class Blockchain:
             proof=block['proof']
             hash_op=hashlib.sha256(str(proof**2 - previous_proof**2).encode()).hexdigest()
             if hash_op[0:4] != '0000':
-                print(hash_op)
-                return [False ,'error2']
+                #print(hash_op)
+                return [False, 'error2']
             previous_block=block
             block_index += 1
         return [True]
@@ -64,17 +66,28 @@ CORS(app, support_credentials=True)
 blockchain = Blockchain()
 
 
-@app.route('/mine_block',methods=['GET'])
+@app.route('/mine_block',methods=['POST'])
 def mine_block():
     previous_block=blockchain.get_previous_block()
     previous_proof=previous_block['proof']
     proof=blockchain.proof_of_work(previous_proof)
     previous_hash=blockchain.hash(previous_block)
-    block=blockchain.create_block(proof,previous_hash)
+    hct=request.form.get('hct')
+    hgb=request.form.get('hgb')
+    irf=request.form.get('irf')
+    mch=request.form.get('mch')
+    mchc=request.form.get('mchc')
+    mcv=request.form.get('mcv')
+    rbc=request.form.get('rbc')
+    rdw=request.form.get('rdw')
+    retc=request.form.get('retc')
+    retp=request.form.get('retp')
+    block=blockchain.create_block(proof,previous_hash,hct,hgb,irf,mch,mchc,mcv,rbc,rdw,retc,retp)
     chain1={
         'message': 'Block successfully mined',
         'index': block['index'],
         'timestamp': block['timestamp'],
+        'blood': block['blood'],
         'proof': block['proof'],
         'previous_hash': block['previous_hash']
     }
@@ -92,7 +105,7 @@ def get_chain():
 @app.route('/is_it_valid',methods=['GET'])
 def is_valid():
     x=blockchain.chain_validity(blockchain.chain)
-    if(len(x)==1):
+    if len(x)==1:
         answer=x[0]
     else:
         answer=x[0]
@@ -102,11 +115,13 @@ def is_valid():
         response={'message': 'All good Captain! The chain remains toit'
                   }
     else:
-        response={'message': 'Houston, there is slight problem! You have been defrauded. Ok bye! ',
+        response={'message': 'Houston, there is slight problem! You have been defrauded. Bhak bc. Ok bye! ',
                   'err': err}
 
     return jsonify(response),200
 
 
 if __name__ == '__main__':
-    app.run()
+    app.run(host='127.0.0.1', port=5050)
+
+
